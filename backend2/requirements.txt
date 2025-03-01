@@ -1,0 +1,12 @@
+flask 
+pinecone
+sentence_transformers
+google.generativeai 
+uuid
+
+
+
+
+//pcsk_6SXaWb_4RwGSFbbmEtp4PCHgT9K1KGRxLYRDDT6Bb4AaEZAomzxgTGpqtcrrwvULgbVqeP
+
+gemin => AIzaSyAzJaogUQHMjrcJf3B6gcc_DjiTy6XGLfQ

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>File Upload</title>
+    
+    <script>
+        function showResponse(responseText) {
+            document.getElementById("result").innerText = responseText;
+        }
+    </script>
+</head>
+<body>
+    <h2>Upload a File</h2>
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" required>
+        <button type="submit">Upload</button>
+    </form>
+    <h3>Extracted Text:</h3>
+    <pre id="result"></pre>
+</body>
+</html>
