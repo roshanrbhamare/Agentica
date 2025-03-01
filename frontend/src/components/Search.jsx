@@ -8,6 +8,7 @@ function Search() {
   const [history,setHistory] = useState([]);
   const [query, setQuery] = useState('');
   const [answer, setAnswer] = useState('');
+  const [loading,setLoading] = useState(false);
   const userData = localStorage.getItem('userData');
   const navigate = useNavigate();
   const fetchHistory = async(userId)=>{
@@ -28,10 +29,12 @@ fetchHistory(data.userId);
 
     try {
       const userId = JSON.parse(userData).userId;
+      setLoading(true);
       const response = await axios.post('http://localhost:3000/search', {
         query,
         userId
       });
+      setLoading(false);
       const formattedAnswer = formatAnswer(response.data.answer);
       setAnswer(formattedAnswer);
     } catch (error) {
@@ -84,7 +87,10 @@ fetchHistory(data.userId);
 
       <div className='flex-1 w-full h-full'>
         <div className='h-[90vh] font-sans text-white bg-[#31363F] overflow-y-auto p-8'>
-          {answer ? <div dangerouslySetInnerHTML={{ __html: answer }} /> : 'Search for something to see results here.'}
+          {
+            loading && <Loading/>
+          }
+          {(answer&&!loading )&&<div dangerouslySetInnerHTML={{ __html: answer }} />}
         </div>
 
         <div className=' bg-[#222831]  py-2'>
@@ -110,5 +116,15 @@ fetchHistory(data.userId);
     </div>
   );
 }
-
+function Loading() {
+  return (
+    <div className="flex justify-center items-center min-h-screen">
+      <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
+}
 export default Search;
+
+
+
+

@@ -19,7 +19,7 @@ const mongoose = require('mongoose');
 
 const app = express();
 const PORT = 3000;
-const ASSEMBLYAI_API_KEY = "4999b6fdf1424d9fb484452660d7824a"; // Replace with your API key
+const ASSEMBLYAI_API_KEY = "7ff45c08cffb4030bf8f8b3fd7f77903"; // Replace with your API key
 
 // Set EJS as the view engine
 app.set("view engine", "ejs");
@@ -63,64 +63,6 @@ const extractTextFromImage = async (filePath) => {
   return data.text;
 };
 
-// Upload audio/video to AssemblyAI and transcribe
-// const extractTextFromAudioVideo = async (filePath) => {
-//     try {
-//         console.log("Uploading file to AssemblyAI...");
-
-//         // Upload file to AssemblyAI
-//         const form = new FormData();
-//         form.append("file", fs.createReadStream(filePath));
-
-//         const uploadResponse = await axios.post("https://api.assemblyai.com/v2/upload", form, {
-//             headers: {
-//                 "authorization": ASSEMBLYAI_API_KEY,
-//                 ...form.getHeaders(),
-//             },
-//         });
-
-//         const audioUrl = uploadResponse.data.upload_url;
-//         console.log("File uploaded, URL:", audioUrl);
-
-//         // Start transcription
-//         const transcribeResponse = await axios.post("https://api.assemblyai.com/v2/transcript", {
-//             audio_url: audioUrl,
-//         }, {
-//             headers: {
-//                 "authorization": ASSEMBLYAI_API_KEY,
-//                 "content-type": "application/json",
-//             },
-//         });
-
-//         const transcriptId = transcribeResponse.data.id;
-//         console.log("Transcription started, ID:", transcriptId);
-
-//         // Wait for transcription to complete
-//         let transcription;
-//         while (true) {
-//             const transcriptData = await axios.get(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
-//                 headers: {
-//                     "authorization": ASSEMBLYAI_API_KEY,
-//                 },
-//             });
-
-//             if (transcriptData.data.status === "completed") {
-//                 transcription = transcriptData.data.text;
-//                 break;
-//             } else if (transcriptData.data.status === "failed") {
-//                 throw new Error("Transcription failed");
-//             }
-
-//             console.log("Waiting for transcription...");
-//             await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
-//         }
-
-//         return transcription;
-//     } catch (error) {
-//         console.error("Error processing audio/video:", error);
-//         return "Error transcribing file.";
-//     }
-// };
 
 
 
@@ -129,7 +71,7 @@ const extractTextFromImage = async (filePath) => {
 async function sendTextToPython(text, userID) {
   try {
    // console.log(text);
-   console.log(userID);
+   console.log("audio=> "+text);
     const response = await axios.post('http://localhost:5001/store', {
       user_id: userID,
       text: text
@@ -160,32 +102,96 @@ async function searchPythonAPI(query, userId) {
   }
 }
 
-
 const extractTextFromAudioVideo = async (filePath) => {
   try {
-    // Upload file
+    // Verify API key is set
+    if (!ASSEMBLYAI_API_KEY) {
+      throw new Error('AssemblyAI API key not configured');
+    }
+
+    // Upload file with progress
+    console.log('Uploading file to AssemblyAI...');
     const form = new FormData();
     form.append("file", fs.createReadStream(filePath));
-    const uploadResponse = await axios.post("https://api.assemblyai.com/v2/upload", form, {
-      headers: { authorization: ASSEMBLYAI_API_KEY, ...form.getHeaders() },
-    });
+    const uploadResponse = await axios.post(
+      "https://api.assemblyai.com/v2/upload",
+      form,
+      { headers: { authorization: ASSEMBLYAI_API_KEY, ...form.getHeaders() } }
+    );
 
-    // Start transcription with webhook
+    // Start transcription
+    console.log('Starting transcription...');
     const transcribeResponse = await axios.post(
       "https://api.assemblyai.com/v2/transcript",
       {
         audio_url: uploadResponse.data.upload_url,
-        webhook_url: "https://your-domain.com/assemblyai-webhook",
       },
       { headers: { authorization: ASSEMBLYAI_API_KEY } }
     );
 
-    return transcribeResponse.data.id; // Return transcript ID
+    const transcriptId = transcribeResponse.data.id;
+    console.log(`Transcription ID: ${transcriptId}`);
+
+    // Poll for completion with retries
+    let attempts = 0;
+    const maxAttempts = 30; // 30 attempts * 3s = 90s timeout
+    while (attempts < maxAttempts) {
+      attempts++;
+      const transcriptResponse = await axios.get(
+        `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
+        { headers: { authorization: ASSEMBLYAI_API_KEY } }
+      );
+
+      const { status, error, text } = transcriptResponse.data;
+      
+      console.log(`Attempt ${attempts}: Status - ${status}`);
+
+      if (status === "completed") {
+        return text;
+      }
+      if (status === "error") {
+        throw new Error(`Transcription failed: ${error}`);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+
+    throw new Error('Transcription timed out');
   } catch (error) {
-    console.error("Error:", error);
-    return null;
+    console.error("Error Details:", {
+      message: error.message,
+      response: error.response?.data
+    });
+    throw new Error(`Transcription failed: ${error.message}`);
   }
 };
+
+
+// const extractTextFromAudioVideo = async (filePath) => {
+//   try {
+//     // Upload file
+//     const form = new FormData();
+//     form.append("file", fs.createReadStream(filePath));
+//     const uploadResponse = await axios.post("https://api.assemblyai.com/v2/upload", form, {
+//       headers: { authorization: ASSEMBLYAI_API_KEY, ...form.getHeaders() },
+//     });
+
+//     // Start transcription with webhook
+//     const transcribeResponse = await axios.post(
+//       "https://api.assemblyai.com/v2/transcript",
+//       {
+//         audio_url: uploadResponse.data.upload_url,
+//         webhook_url: "https://your-domain.com/assemblyai-webhook",
+//       },
+//       { headers: { authorization: ASSEMBLYAI_API_KEY } }
+//     );
+
+//     return transcribeResponse.data.id; // Return transcript ID
+//   } catch (error) {
+//     console.error("Error:", error);
+//     return null;
+//   }
+// };
 
 
 
@@ -258,31 +264,6 @@ app.post('/login', async (req, res) => {
 
 
 
-// Handle file uploads and text extraction
-// app.post("/upload", upload.single("file"), async (req, res) => {
-//   try {
-//     if (!req.file) return res.status(400).send("No file uploaded.");
-//     const { userId } = req.body;
-//     const filePath = req.file.path;
-//     const ext = path.extname(req.file.originalname).toLowerCase();
-//     let extractedText = "";
-
-//     if (ext === ".pdf") extractedText = await extractTextFromPDF(filePath);
-//     else if (ext === ".docx") extractedText = await extractTextFromDocx(filePath);
-//     else if ([".png", ".jpg", ".jpeg", ".bmp"].includes(ext)) extractedText = await extractTextFromImage(filePath);
-//     else if ([".mp3", ".wav", ".mp4"].includes(ext)) extractedText = await extractTextFromAudioVideo(filePath);
-//     else extractedText = fs.readFileSync(filePath, "utf8");
-
-//     fs.unlinkSync(filePath); // Clean up uploaded file
-//     console.log("filename" + filePath);
-
-//     const response = sendTextToPython(extractedText, userId);
-//     res.status(200).send({ success: true });
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send("Error extracting text.");
-//   }
-// });
 
 
 app.post("/upload", upload.single("file"), async (req, res) => {
