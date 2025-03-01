@@ -136,12 +136,13 @@ export default function Upload() {
       const response = await axios.post('http://localhost:3000/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+     
       navigate('/search');
       //alert('File uploaded successfully!');
-      console.log(response.data);
+     // console.log(response.data);
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Error uploading file.');
+     // alert('Error uploading file.');
     } finally {
       setIsUploading(false);
     }
@@ -149,18 +150,18 @@ export default function Upload() {
 
   return (
     <div className='p-4 flex flex-col gap-4'>
-      <Button component="label" variant="contained" startIcon={<CloudUploadIcon />}>
+      <button component="label" variant="contained" className='bg-purple-600 p-2 rounded-lg text-white font-bold'  startIcon={<CloudUploadIcon />}>
         Upload File
         <VisuallyHiddenInput type="file" onChange={handleFileChange} />
-      </Button>
+      </button>
 
       {file && (
         <div className="text-sm text-gray-700">Selected File: {file.name}</div>
       )}
 
-      <Button variant='contained' onClick={handleSubmit} disabled={isUploading}>
-        {isUploading ? <CircularProgress size={24} color="inherit" /> : 'Submit'}
-      </Button>
+      <button variant='contained' className='bg-purple-600 p-2 rounded-lg text-white font-bold' onClick={handleSubmit} disabled={isUploading}>
+        {isUploading ? <CircularProgress className='bg-purple-600'  size={24} color="inherit" /> : 'Submit'}
+      </button>
     </div>
   );
 }

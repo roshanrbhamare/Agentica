@@ -225,7 +225,7 @@ export default function Home() {
           <div className="hidden lg:flex lg:flex-1 lg:justify-end">
             {userData&&<Link
               to="/auth-page"
-              className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500"
+              className="rounded-md bg-purple-600 px-3.5 py-2.5 text-sm font-semibold text-white hover:bg-purple-700"
               onClick={onClickLogout}
             >
              Logout →
@@ -277,7 +277,7 @@ export default function Home() {
         <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-24 text-center">
           <h1 className="text-5xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
             Enhance Your AI Response{" "}
-            <span className="font-bold text-blue-700">With IntelliDoc</span>
+            <span className="font-bold text-purple-700">With IntelliDoc</span>
           </h1>
           <p className="mt-8 text-md font-medium text-gray-500 sm:text-md">
             AI-powered Document Analysis System automates the extraction,
@@ -288,7 +288,7 @@ export default function Home() {
           <div className="mt-10 flex items-center justify-center gap-x-6">
             <a
               href="/upload"
-              className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500"
+            className="rounded-md bg-purple-700 px-3.5 py-2.5 text-sm font-semibold text-white hover:bg-purple-800"
             >
               Get started
             </a>

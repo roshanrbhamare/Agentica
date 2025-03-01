@@ -14,6 +14,7 @@ const cors = require("cors");
 //const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
 
 const app = express();
@@ -258,12 +259,40 @@ app.post('/login', async (req, res) => {
 
 
 // Handle file uploads and text extraction
+// app.post("/upload", upload.single("file"), async (req, res) => {
+//   try {
+//     if (!req.file) return res.status(400).send("No file uploaded.");
+//     const { userId } = req.body;
+//     const filePath = req.file.path;
+//     const ext = path.extname(req.file.originalname).toLowerCase();
+//     let extractedText = "";
+
+//     if (ext === ".pdf") extractedText = await extractTextFromPDF(filePath);
+//     else if (ext === ".docx") extractedText = await extractTextFromDocx(filePath);
+//     else if ([".png", ".jpg", ".jpeg", ".bmp"].includes(ext)) extractedText = await extractTextFromImage(filePath);
+//     else if ([".mp3", ".wav", ".mp4"].includes(ext)) extractedText = await extractTextFromAudioVideo(filePath);
+//     else extractedText = fs.readFileSync(filePath, "utf8");
+
+//     fs.unlinkSync(filePath); // Clean up uploaded file
+//     console.log("filename" + filePath);
+
+//     const response = sendTextToPython(extractedText, userId);
+//     res.status(200).send({ success: true });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send("Error extracting text.");
+//   }
+// });
+
+
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).send("No file uploaded.");
+
     const { userId } = req.body;
     const filePath = req.file.path;
     const ext = path.extname(req.file.originalname).toLowerCase();
+    const fileName = req.file.originalname;
     let extractedText = "";
 
     if (ext === ".pdf") extractedText = await extractTextFromPDF(filePath);
@@ -273,15 +302,47 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     else extractedText = fs.readFileSync(filePath, "utf8");
 
     fs.unlinkSync(filePath); // Clean up uploaded file
-    console.log("filename" + filePath);
 
-    const response = sendTextToPython(extractedText, userId);
-    res.status(200).send({ success: true });
+    console.log("filename: " + filePath);
+
+    // Save filename to user's history
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).send("User not found.");
+
+    const newDoc = { title: fileName, docId: new mongoose.Types.ObjectId() };
+    user.history.push(newDoc);
+    await user.save();
+
+    // Send extracted text to Python service
+    await sendTextToPython(extractedText, userId);
+
+    res.status(200).send({ success: true, document: newDoc });
   } catch (err) {
     console.error(err);
     res.status(500).send("Error extracting text.");
   }
 });
+
+app.post('/upload-doc',async(req,res)=>{
+try {
+  const { userId } = req.body;
+  console.log("/doc=>"+userId)
+  const user = await User.findById(userId);
+  let data = [];
+  if (!user) return res.status(404).send({messgae: "User not found.",data});
+  user.history.map((e)=>{
+    data.push(e.title);
+  })
+  return res.status(200).json({
+    message:"Data extracted successfully",
+    data
+  })
+} catch (error) {
+  console.error(err);
+  res.status(500).send("Error extracting text.");
+}
+})
+
 
 app.post('/search', async (req, res) => {
   const { query, userId } = req.body;

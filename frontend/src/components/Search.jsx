@@ -2,17 +2,25 @@ import { Button } from '@headlessui/react';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import DocIcons from './DocIcons';
 
 function Search() {
+  const [history,setHistory] = useState([]);
   const [query, setQuery] = useState('');
   const [answer, setAnswer] = useState('');
   const userData = localStorage.getItem('userData');
   const navigate = useNavigate();
+  const fetchHistory = async(userId)=>{
+    const res1 = await axios.post('http://localhost:3000/upload-doc',{userId: userId});
+   setHistory(res1.data.data);
+  }
 
   useEffect(() => {
     if (!userData) {
       navigate('/auth-page');
     }
+    const data = JSON.parse(userData);
+fetchHistory(data.userId);
   }, [userData, navigate]);
 
   const handleSearch = async () => {
@@ -40,42 +48,63 @@ function Search() {
   };
 
   return (
-    <div className='w-full flex flex-row gap-1'>
-      <div className='w-[20%] rounded-lg shadow-lg flex flex-col gap-4 bg-gray-100 p-4 items-start min-h-screen justify-start'>
+    <div className='w-full flex flex-row'>
+      <div className='w-[20%] overflow-y-auto  shadow-lg flex flex-col gap-4 bg-[#222831] p-4 items-start min-h-screen justify-start'>
         <div>
-          <h2 className='text-purple-700 font-bold text-lg tracking-tighter'>
+          {
+            history.length === 0 ? <h2 className='text-red-700 font-bold text-lg tracking-tighter'>
+            No Previous Upload Documents
+          </h2> : <div>
+          <h2 className='text-[#EEEEEE] font-bold text-lg tracking-tighter'>
             Previous Upload Documents
           </h2>
+                {
+                  history.map((e)=>{
+                    return <div className='flex items-center gap-2 p-2 my-4 bg-purple-700 text-white font-bold  rounded-lg cursor-pointer'>
+                      <DocIcons/>
+                      <div>
+                    {
+                      e
+                    }
+                  </div>
+                    </div>
+                  })
+                }
+          </div>
+}
         </div>
-        <div className='p-2 bg-white hover:bg-gray-50 rounded-lg cursor-pointer'>
-          Alice Wonderland
-        </div>
-        <div className='p-2 bg-white hover:bg-gray-50 rounded-lg cursor-pointer'>
+        
+        {/* <div className='p-2 bg-white hover:bg-gray-50 rounded-lg cursor-pointer'>
           Harry Potter
         </div>
         <div className='p-2 bg-white hover:bg-gray-50 rounded-lg cursor-pointer'>
           Computer Network
-        </div>
+        </div> */}
       </div>
 
       <div className='flex-1 w-full h-full'>
-        <div className='h-[90vh] font-sans text-gray-600 bg-gray-50 overflow-y-auto p-8'>
+        <div className='h-[90vh] font-sans text-white bg-[#31363F] overflow-y-auto p-8'>
           {answer ? <div dangerouslySetInnerHTML={{ __html: answer }} /> : 'Search for something to see results here.'}
         </div>
 
-        <div className='mt-2'>
+        <div className=' bg-[#222831]  py-2'>
           <input
             placeholder='Ask me a question?'
             type='text'
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className='w-full lg:w-[70%] p-2 bg-slate-100 rounded-lg outline-none mx-6'
+            className='w-full lg:w-[70%] p-2 bg-gray-600 text-white rounded-lg outline-none mx-6'
           />
           <Button
             onClick={handleSearch}
-            className='px-4 py-2 bg-purple-700 text-white rounded-lg'>
+            className=' m-2 px-4 py-2 bg-purple-700 text-white rounded-lg'>
             Search
           </Button>
+          <button
+            onClick={() => navigate('/upload')}
+            className='m-2 px-4 py-2 bg-purple-700 text-white rounded-lg'>
+            Upload
+          </button>
         </div>
       </div>
     </div>
