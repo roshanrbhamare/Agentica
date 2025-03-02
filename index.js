@@ -15,7 +15,10 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const { title } = require("process");
-require('dotenv').config();
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
+
 
 const app = express();
 const PORT = 3000;
@@ -26,10 +29,11 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.json());
 app.use(cors({
-  origin: 'http://localhost:5173', // Allow requests from frontend
+  origin: '*', // Allow requests from any origin
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
 // Serve static files
 app.use(express.static("public"));
 
@@ -233,7 +237,7 @@ async function getTitleFromPython(text) {
 
 // Serve the file upload form
 app.get("/", (req, res) => {
-  res.render("index");
+  res.send("server is running");
 });
 
 
