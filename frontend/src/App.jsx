@@ -9,6 +9,7 @@ import Search from "./components/Search";
 import Login from "./components/Auth";
 import Signup from "./components/Signup";
 import Auth from "./components/Auth";
+import Error from "./components/Error";
 
 function App() {
   const router = createBrowserRouter([
@@ -21,7 +22,7 @@ function App() {
     },{
       path:'/auth-page',element:<Auth/>
     },{
-      path:'/success-page',element:<Search/>
+      path:'*',element:<Error/>
     }
   ])
   return (

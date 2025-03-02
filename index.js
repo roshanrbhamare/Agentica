@@ -100,7 +100,6 @@ async function searchPythonAPI(query, userId) {
     });
     console.log("Answer:", response.data.answer);
     return response.data.answer;
-    return
   } catch (error) {
     console.error('Error searching:', error.response ? error.response.data : error.message);
   }

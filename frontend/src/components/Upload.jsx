@@ -46,11 +46,12 @@ export default function Upload() {
     setIsUploading(true);
 
     try {
-      const response = await axios.post('http://localhost:3000/upload', formData, {
+      console.log(file);
+      const response = await axios.post(`${import.meta.env.VITE_NODE_BACKEND_URL}/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      console.log('Upload response:', response.data);
+      //console.log('Upload response:', response.data);
       navigate('/search');
     } catch (error) {
       console.error('Upload error:', error);

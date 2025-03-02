@@ -14,6 +14,7 @@ function Search() {
   const fetchHistory = async(userId)=>{
     const res1 = await axios.post('http://localhost:3000/upload-doc',{userId: userId});
    setHistory(res1.data.data);
+   console.log(res1.data.data);
   }
 
   useEffect(() => {
@@ -24,13 +25,25 @@ function Search() {
 fetchHistory(data.userId);
   }, [userData, navigate]);
 
+  const getSummary = async(metaData)=>{
+    const data = JSON.parse(userData);
+    //console.log(import.meta.env.VITE_NODE_BACKEND_URL)
+    setLoading(true);
+    const response = await axios.post(`${import.meta.env.VITE_NODE_BACKEND_URL}/summary`,{userId:data.userId,metaData:metaData});
+   // console.log(response.data.answer);
+   setLoading(false);
+    const formattedAnswer = formatAnswer(response.data.answer);
+      setAnswer(formattedAnswer);
+  }
+
   const handleSearch = async () => {
     if (!query) return;
 
     try {
       const userId = JSON.parse(userData).userId;
+      
       setLoading(true);
-      const response = await axios.post('http://localhost:3000/search', {
+      const response = await axios.post(`${import.meta.env.VITE_NODE_BACKEND_URL}/search`, {
         query,
         userId
       });
@@ -51,6 +64,8 @@ fetchHistory(data.userId);
   };
 
   return (
+    <div>
+
     <div className='w-full flex flex-row'>
       <div className='w-[20%] overflow-y-auto  shadow-lg flex flex-col gap-4 bg-[#222831] p-4 items-start min-h-screen justify-start'>
         <div>
@@ -59,15 +74,15 @@ fetchHistory(data.userId);
             No Previous Upload Documents
           </h2> : <div>
           <h2 className='text-[#EEEEEE] font-bold text-lg tracking-tighter'>
-            Previous Upload Documents
+            Previous Upload Documents (Click to get summary)
           </h2>
                 {
                   history.map((e)=>{
-                    return <div className='flex items-center gap-2 p-2 my-4 bg-purple-700 text-white font-bold  rounded-lg cursor-pointer'>
+                    return <div onClick={()=>getSummary(e.metaData)} className='flex items-center gap-2 p-2 my-4 bg-purple-700 text-white font-bold  rounded-lg cursor-pointer'>
                       <DocIcons/>
                       <div>
                     {
-                      e
+                      e.title
                     }
                   </div>
                     </div>
@@ -113,6 +128,7 @@ fetchHistory(data.userId);
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 }

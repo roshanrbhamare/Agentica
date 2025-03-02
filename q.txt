@@ -1,0 +1,11 @@
+What mental health conditions has Carl John Smith been diagnosed with?
+How did Carl’s early family environment impact his mental and emotional well-being?
+
+
+What was the main legal issue in the case of Roper v. Simmons?
+
+How did the Supreme Court rule regarding the death penalty for juvenile offenders under the age of 18?
+
+
+pinecone_api_key = "pcsk_3gK6Ef_TTyoQWYXTfC9u5JFZihrBNejRhU5zVcN6CQnN1jjuN3xyAf1yoSZFaLfXh14At"
+gemini_api_key = "AIzaSyB_ARFf5fXKhKov4UhvIgSoErZRezv-_hk"

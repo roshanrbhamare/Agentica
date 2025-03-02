@@ -7,9 +7,8 @@ import uuid
 
 app = Flask(__name__)
 
-pinecone_api_key = "pcsk_3W6Sd1_JYqFqYfAc2d6AFc5FjVVGhy9jQ5ftnYvBSHbrNMsXByxPXh8AmK8QtnWmN485cg"
-gemini_api_key = "AIzaSyAzJaogUQHMjrcJf3B6gcc_DjiTy6XGLfQ"
-
+pinecone_api_key = "pcsk_3gK6Ef_TTyoQWYXTfC9u5JFZihrBNejRhU5zVcN6CQnN1jjuN3xyAf1yoSZFaLfXh14At"
+gemini_api_key = "AIzaSyB_ARFf5fXKhKov4UhvIgSoErZRezv-_hk"
 pc = pinecone.Pinecone(api_key=pinecone_api_key)
 model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 genai.configure(api_key=gemini_api_key)
@@ -32,7 +31,7 @@ def store_text(user_id, text, doc_id):
         chunks = [text[i:i+1000] for i in range(0, len(text), 1000)]
         for i, chunk in enumerate(chunks):
             embedding = model.encode(chunk).tolist()
-            index.upsert(vectors=[(f"{doc_id}-{i}", embedding, {"text": chunk})])
+            index.upsert(vectors=[(f"{doc_id}-{i}", embedding, {"text": chunk, "doc_id": doc_id})])
     except Exception as e:
         print(f"Error storing document: {e}")
 
@@ -40,11 +39,18 @@ def generate_summary(user_id, keyword):
     try:
         index = get_user_index(user_id)
         query_embedding = model.encode(keyword).tolist()
-        results = index.query(vector=query_embedding, top_k=5, include_metadata=True)
-        texts = [match['metadata']['text'] for match in results['matches']]
-        if not texts:
+        results = index.query(vector=query_embedding, top_k=10, include_metadata=True)
+        doc_chunks = {}
+        for match in results['matches']:
+            doc_id = match['metadata'].get('doc_id')
+            text = match['metadata']['text']
+            if doc_id not in doc_chunks:
+                doc_chunks[doc_id] = []
+            doc_chunks[doc_id].append(text)
+        if not doc_chunks:
             return "No relevant documents found for the keyword."
-        combined_text = "\n".join(texts)
+        complete_docs = ["\n".join(chunks) for chunks in doc_chunks.values()]
+        combined_text = "\n".join(complete_docs)
         summary_prompt = f"Summarize the following content related to '{keyword}':\n\n{combined_text}"
         summary_response = chat_model.generate_content(summary_prompt)
         return summary_response.text.strip()
@@ -70,6 +76,14 @@ def search_documents(user_id, query):
     except Exception as e:
         return f"Error searching document: {e}"
 
+def extract_title(text):
+    try:
+        title_prompt = f"Extract the single most suitable title for the following text:\n\n{text}\n\nTitle:"
+        title_response = chat_model.generate_content(title_prompt)
+        return title_response.text.strip()
+    except Exception as e:
+        return f"Error extracting title: {e}"
+
 @app.route('/')
 def home():
     return "NeuroDoc AI is running!"
@@ -79,7 +93,6 @@ def store():
     data = request.get_json()
     user_id = data.get('user_id')
     text = data.get('text')
-    
     if not user_id or not text:
         return jsonify({"error": "User ID and text are required"}), 400
     doc_id = str(uuid.uuid4())
@@ -105,6 +118,15 @@ def summary():
         return jsonify({"error": "User ID and keyword are required"}), 400
     summary_text = generate_summary(user_id, keyword)
     return jsonify({"summary": summary_text})
+
+@app.route('/title', methods=['POST'])
+def title():
+    data = request.get_json()
+    text = data.get('text')
+    if not text:
+        return jsonify({"error": "Text is required"}), 400
+    title = extract_title(text)
+    return jsonify({"title": title})
 
 @app.route('/get/<user_id>/<doc_id>', methods=['GET'])
 def get_document(user_id, doc_id):
