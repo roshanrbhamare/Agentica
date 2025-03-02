@@ -7,8 +7,8 @@ import uuid
 
 app = Flask(__name__)
 
-pinecone_api_key = "pcsk_3gK6Ef_TTyoQWYXTfC9u5JFZihrBNejRhU5zVcN6CQnN1jjuN3xyAf1yoSZFaLfXh14At"
-gemini_api_key = "AIzaSyB_ARFf5fXKhKov4UhvIgSoErZRezv-_hk"
+pinecone_api_key = "#"
+gemini_api_key = "#"
 pc = pinecone.Pinecone(api_key=pinecone_api_key)
 model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 genai.configure(api_key=gemini_api_key)
