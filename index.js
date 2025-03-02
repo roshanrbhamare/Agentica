@@ -1,5 +1,4 @@
 
-// "4999b6fdf1424d9fb484452660d7824a"
 const express = require("express");
 const multer = require("multer");
 const pdfParse = require("pdf-parse");
@@ -15,11 +14,12 @@ const cors = require("cors");
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
-
+const { title } = require("process");
+require('dotenv').config();
 
 const app = express();
 const PORT = 3000;
-const ASSEMBLYAI_API_KEY = "7ff45c08cffb4030bf8f8b3fd7f77903"; // Replace with your API key
+const ASSEMBLYAI_API_KEY = process.env.ASSEMBLY;// Replace with your API key
 
 // Set EJS as the view engine
 app.set("view engine", "ejs");
@@ -70,9 +70,9 @@ const extractTextFromImage = async (filePath) => {
 
 async function sendTextToPython(text, userID) {
   try {
-   // console.log(text);
-   console.log("audio=> "+text);
-    const response = await axios.post('http://localhost:5001/store', {
+    // console.log(text);
+    //console.log("audio=> " + text);
+    const response = await axios.post(`${process.env.FLASK_BACKEND_URL}/store`, {
       user_id: userID,
       text: text
     });
@@ -90,7 +90,7 @@ async function sendTextToPython(text, userID) {
 
 async function searchPythonAPI(query, userId) {
   try {
-    const response = await axios.post('http://localhost:5001/search', {
+    const response = await axios.post(`${process.env.FLASK_BACKEND_URL}/search`, {
       user_id: userId,
       query: query
     });
@@ -143,7 +143,7 @@ const extractTextFromAudioVideo = async (filePath) => {
       );
 
       const { status, error, text } = transcriptResponse.data;
-      
+
       console.log(`Attempt ${attempts}: Status - ${status}`);
 
       if (status === "completed") {
@@ -152,7 +152,7 @@ const extractTextFromAudioVideo = async (filePath) => {
       if (status === "error") {
         throw new Error(`Transcription failed: ${error}`);
       }
-      
+
       await new Promise(resolve => setTimeout(resolve, 3000));
     }
 
@@ -165,6 +165,42 @@ const extractTextFromAudioVideo = async (filePath) => {
     throw new Error(`Transcription failed: ${error.message}`);
   }
 };
+
+async function getSummaryFromPython(keyword, userId) {
+  try {
+    console.log(keyword, userId);
+    const response = await axios.post(`${process.env.FLASK_BACKEND_URL}/summary`, {
+      user_id: userId,
+      keyword: keyword
+    });
+    // console.log("Summary:", response.data.summary);
+    return response.data.summary;
+  } catch (error) {
+    console.error('Error getting summary:', error.response ? error.response.data : error.message);
+  }
+}
+
+
+async function getTitleFromPython(text) {
+  try {
+    console.log("Meta data")
+    const response = await axios.post(`${process.env.FLASK_BACKEND_URL}/title`, {
+      text: text
+    });
+     console.log("Title:", response.data.title);
+    return response.data.title;
+  } catch (error) {
+    console.error('Error getting title:', error.response ? error.response.data : error.message);
+  }
+}
+
+// Ensure we await the promise before using the value
+
+
+
+
+
+
 
 
 // const extractTextFromAudioVideo = async (filePath) => {
@@ -271,6 +307,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     if (!req.file) return res.status(400).send("No file uploaded.");
 
     const { userId } = req.body;
+    
     const filePath = req.file.path;
     const ext = path.extname(req.file.originalname).toLowerCase();
     const fileName = req.file.originalname;
@@ -284,16 +321,19 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
     fs.unlinkSync(filePath); // Clean up uploaded file
 
-    console.log("filename: " + filePath);
+    //console.log("filename: " + filePath);
 
     // Save filename to user's history
     const user = await User.findById(userId);
     if (!user) return res.status(404).send("User not found.");
-
-    const newDoc = { title: fileName, docId: new mongoose.Types.ObjectId() };
+    const metaData = await getTitleFromPython(extractedText);
+    // console.log("metaData: " + metaData);
+   // const metaData = "";
+   const newDoc = { title: fileName, docId: new mongoose.Types.ObjectId(), metaData };
+   console.log(extractedText);
     user.history.push(newDoc);
     await user.save();
-
+    console.log(extractedText);
     // Send extracted text to Python service
     await sendTextToPython(extractedText, userId);
 
@@ -304,37 +344,55 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-app.post('/upload-doc',async(req,res)=>{
-try {
-  const { userId } = req.body;
-  console.log("/doc=>"+userId)
-  const user = await User.findById(userId);
-  let data = [];
-  if (!user) return res.status(404).send({messgae: "User not found.",data});
-  user.history.map((e)=>{
-    data.push(e.title);
-  })
-  return res.status(200).json({
-    message:"Data extracted successfully",
-    data
-  })
-} catch (error) {
-  console.error(err);
-  res.status(500).send("Error extracting text.");
-}
+app.post('/upload-doc', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    console.log("/doc=>" + userId)
+    const user = await User.findById(userId);
+    let data = [];
+    if (!user) return res.status(404).send({ messgae: "User not found.", data });
+    user.history.map((e) => {
+      data.push({title: e.title,metaData: e.metaData});
+    })
+    return res.status(200).json({
+      message: "Data extracted successfully",
+      data
+    })
+  } catch (error) {
+    console.error(err);
+    res.status(500).send("Error extracting text.");
+  }
 })
 
 
 app.post('/search', async (req, res) => {
   const { query, userId } = req.body;
-
+  console.log(query);
   if (!query || !userId) {
     return res.status(400).json({ error: 'Query and userId are required.' });
   }
 
   try {
     const answer = await searchPythonAPI(query, userId);
-    console.log(answer);
+    console.log("anser from => "+answer);
+    res.status(200).json({ answer });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to search the Python API.' });
+  }
+});
+
+
+
+app.post('/summary', async (req, res) => {
+  const { metaData, userId } = req.body;
+
+  if (!metaData || !userId) {
+    return res.status(400).json({ error: 'Query and userId are required.' });
+  }
+
+  try {
+    const answer = await getSummaryFromPython(metaData, userId);
+    //console.log(answer);
     res.status(200).json({ answer });
   } catch (error) {
     res.status(500).json({ error: 'Failed to search the Python API.' });

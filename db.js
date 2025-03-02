@@ -1,9 +1,10 @@
 // db.js - MongoDB Connection
 const mongoose = require('mongoose');
+require('dotenv').config(); // Ensure you have dotenv installed: npm install dotenv
 
 const connectDB = async () => {
   try {
-    await mongoose.connect('mongodb://localhost:27017/agentic');
+    await mongoose.connect(process.env.MONGO_URI);
     console.log('MongoDB connected');
   } catch (error) {
     console.error('MongoDB connection error:', error);
@@ -16,8 +17,9 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   history: [
     {
-      title: { type: String, required: true },
-      docId: { type: String, required: true },
+      title: { type: String },
+      docId: { type: String },
+      metaData: { type: String },
     },
   ],
 });
